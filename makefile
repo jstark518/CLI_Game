@@ -1,6 +1,6 @@
 CC = gcc
 LIBS = -lncurses
-CFLAGS = -Wall $(LIBS)
+CFLAGS = -Wall -g $(LIBS)
 EXE = main
 OBJS = *.o
 SRCS = *.c

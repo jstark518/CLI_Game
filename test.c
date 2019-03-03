@@ -1,5 +1,7 @@
+#include <stdio.h>
 #include <string.h>
 #include <ncurses.h>
+#include <time.h>
 
 // TODO Currently these need to be 5,3. Some code has fixed stuff for that **BAD**
 #define GB_WIDTH 	6
@@ -8,14 +10,26 @@
 #define GB_TOPPAD	5
 #define GB_COLS		10
 #define GB_ROWS		10
+#define DIFFICULTY	10 // The higher the number the easier the game
+
+#define SetBit(A,k)     ( A |= (1 << (k)) )
+#define ClearBit(A,k)   ( A &= ~(1 << (k)) )
+#define TestBit(A,k)    ( A & (1 << (k)) )
 
 struct CURRPOS {
 	int x,y;
 	int coly, colx;
 };
 
+int mines[GB_ROWS];
+
+// MOVE TO HEADER FILE
 void MyMove(struct CURRPOS c);
 void DrawGameBoard(int rows, int cols);
+void GenerateMineFeild(int xx, int yy);
+void Debug_PrintMineField();
+
+
 
 int main(int argc, char *argv[]) {
 	int ch, row,col;
@@ -66,6 +80,10 @@ int main(int argc, char *argv[]) {
                         }
                         MyMove(currpos);
 		}
+		if(ch == ' ') {
+			GenerateMineFeild(currpos.colx, currpos.coly);
+			Debug_PrintMineField();
+		}
 	}
 	endwin();
 
@@ -98,6 +116,34 @@ void DrawGameBoard(int rows, int cols) {
 		mvprintw(i+1,y*width + leftpadding,"|");
 		mvprintw(i+2,y*width + leftpadding,"|");
 		i=i+height;
+	}
+}
+// x,y should not have a mine.
+void GenerateMineFeild(int xx, int yy) {
+	time_t t;
+	int x,y;
+	srand((unsigned) time(&t));
+	for(x=0; x<GB_ROWS; x++) {
+		for(y=0; y<GB_COLS; y++) {
+			if(rand() % DIFFICULTY == 0)
+				SetBit(mines[x], y);
+			else
+				ClearBit(mines[x], y);
+			if(x+1==xx && y+1==yy) ClearBit(mines[x], y); // Make sure the selected area does not have a mine
+		}
+	}
+}
+void Debug_PrintMineField() {
+	int x,y;
+        for(x=0; x<GB_ROWS; x++) {
+                for(y=0; y<GB_COLS; y++) {
+			if(TestBit(mines[x], y)) {
+				mvprintw(x+30,y,"*");
+			}
+			else {
+				mvprintw(x+30,y,"O");
+			}
+		}
 	}
 }
 void MyMove(struct CURRPOS c) {
