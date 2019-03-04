@@ -22,7 +22,7 @@ struct CURRPOS {
 };
 
 int mines[GB_ROWS];
-// int cleared[GB_ROWS]; do I need this?
+int cleared[GB_ROWS]; // do I need this? yes.
 
 // MOVE TO HEADER FILE
 void MyMove(struct CURRPOS c);
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 				Print_BlankGameBoard();
 				activegame = true;
 			}
-			if(TestBit(mines[currpos.colx], currpos.coly)) { // Lost
+			if(TestBit(mines[currpos.colx-1], currpos.coly-1)) { // Lost
 				PrintEndofGame();
 				mvprintw(currpos.x, currpos.y,"*"); // not sure why ths space is blank
 				currpos.x = GB_TOPPAD + 2;
@@ -103,8 +103,7 @@ int main(int argc, char *argv[]) {
 				activegame = false;
 			}
 			else { // Spot is clear
-				recur = 0; // safey first
-				ClearMyNeighbors(currpos.colx, currpos.coly);
+				ClearMyNeighbors(currpos.colx-1, currpos.coly-1);
 			}
 			MyMove(currpos);
 		}
@@ -160,50 +159,56 @@ void GenerateMineFeild(int xx, int yy) {
 }
 void ClearMyNeighbors(int x, int y) {
 	int bombcount =0;
-	mvprintw(1,1, "%d - %d - %d           ", x, y);
-	if(x<1 || y<1 || x>GB_ROWS || y>GB_COLS) {
+	if(x<0 || y<0 || x>=GB_ROWS || y>=GB_COLS) {
 		return; // out of bounds
 	}
-	y--; x--;
+	if(TestBit(cleared[x], y)) return; // Already cleared, should I check this before going here?
 	if(TestBit(mines[x], y)) {
 		mvprintw(1,1, "BOMB HERE %d - %d", x, y);
 		return; // bomb here
 	}
-        if(TestBit(mines[x], y-1)) bombcount++;
-	if(!TestBit(mines[x], y-1)) ClearMyNeighbors(x, y-1);
-	if(TestBit(mines[x], y+1)) bombcount++;
-        if(!TestBit(mines[x], y+1)) ClearMyNeighbors(x, y+1); 
-        if(TestBit(mines[x-1], y)) bombcount++;
-        if(!TestBit(mines[x-1], y)) ClearMyNeighbors(x-1, y);
-        if(TestBit(mines[x+1], y)) bombcount++;
-        if(!TestBit(mines[x+1], y)) ClearMyNeighbors(x+1, y);
+    if(TestBit(mines[x], y-1))   bombcount++;
+	if(TestBit(mines[x], y+1))   bombcount++;
+    if(TestBit(mines[x-1], y))   bombcount++;
+    if(TestBit(mines[x+1], y))   bombcount++;
+	if(TestBit(mines[x-1], y-1)) bombcount++;
+ 	if(TestBit(mines[x+1], y-1)) bombcount++;
+	if(TestBit(mines[x-1], y+1)) bombcount++;
+ 	if(TestBit(mines[x+1], y+1)) bombcount++;
 	if(bombcount == 0) mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3, " ");
 	if(bombcount > 0) mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3, "%d", bombcount);
+	if(bombcount == 0) {
+        SetBit(cleared[x], y);
+        ClearMyNeighbors(x-1, y);
+        ClearMyNeighbors(x+1, y);
+        ClearMyNeighbors(x, y-1);
+        ClearMyNeighbors(x, y+1);
+    }
 }
 // Print where all the mines are
 void PrintEndofGame() {
 	int x,y;
 	for(x=0; x<GB_ROWS; x++) {
-        	for(y=0; y<GB_COLS; y++) {
-                        if(TestBit(mines[x], y)) mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3,"*");
-			else			 mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3," ");
+		for(y=0; y<GB_COLS; y++) {
+	    	if(TestBit(mines[x], y)) mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3,"*");
+			else  mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3," ");
 		}
 	}
 }
 void Print_BlankGameBoard() {
 	int x,y;
-        for(x=0; x<GB_ROWS; x++) {
-                for(y=0; y<GB_COLS; y++) {
+    for(x=0; x<GB_ROWS; x++) {
+    	for(y=0; y<GB_COLS; y++) {
 			mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3,"?");
 		}
 	}
 }
 void Debug_PrintMineField() {
 	int x,y;
-        for(x=0; x<GB_ROWS; x++) {
-                for(y=0; y<GB_COLS; y++) {
+    for(x=0; x<GB_ROWS; x++) {
+    	for(y=0; y<GB_COLS; y++) {
 			if(TestBit(mines[x], y)) mvprintw(+30,y,"*");
-			else 			 mvprintw(x+30,y,"O");
+			else	 			     mvprintw(x+30,y,"O");
 		}
 	}
 }
