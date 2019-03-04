@@ -22,17 +22,22 @@ struct CURRPOS {
 };
 
 int mines[GB_ROWS];
+// int cleared[GB_ROWS]; do I need this?
 
 // MOVE TO HEADER FILE
 void MyMove(struct CURRPOS c);
 void DrawGameBoard(int rows, int cols);
 void GenerateMineFeild(int xx, int yy);
 void Debug_PrintMineField();
+void PrintEndofGame();
+void Print_BlankGameBoard();
+void ClearMyNeighbors(int x, int y);
 
-
+int recur;
 
 int main(int argc, char *argv[]) {
 	int ch, row,col;
+	bool activegame = false;
 	struct CURRPOS currpos;
 	initscr();
 	keypad(stdscr, TRUE);
@@ -46,6 +51,8 @@ int main(int argc, char *argv[]) {
 	currpos.y = GB_LEFTPAD + 3;
 	currpos.coly = 1;
 	currpos.colx = 1;
+	Print_BlankGameBoard();
+
 	MyMove(currpos);
 	for(;;) {
 		ch = getch();
@@ -81,8 +88,25 @@ int main(int argc, char *argv[]) {
                         MyMove(currpos);
 		}
 		if(ch == ' ') {
-			GenerateMineFeild(currpos.colx, currpos.coly);
-			Debug_PrintMineField();
+			if(!activegame) {
+				GenerateMineFeild(currpos.colx, currpos.coly);
+				Print_BlankGameBoard();
+				activegame = true;
+			}
+			if(TestBit(mines[currpos.colx], currpos.coly)) { // Lost
+				PrintEndofGame();
+				mvprintw(currpos.x, currpos.y,"*"); // not sure why ths space is blank
+				currpos.x = GB_TOPPAD + 2;
+			        currpos.y = GB_LEFTPAD + 3;
+			        currpos.coly = 1;
+				currpos.colx = 1;
+				activegame = false;
+			}
+			else { // Spot is clear
+				recur = 0; // safey first
+				ClearMyNeighbors(currpos.colx, currpos.coly);
+			}
+			MyMove(currpos);
 		}
 	}
 	endwin();
@@ -118,7 +142,8 @@ void DrawGameBoard(int rows, int cols) {
 		i=i+height;
 	}
 }
-// x,y should not have a mine.
+// Generate the minefield randomly; array of int, using bitwise to save space. (max col would now be 32)
+// x,y should not have a mine. (the boxes around it shouldn't either ** TODO).
 void GenerateMineFeild(int xx, int yy) {
 	time_t t;
 	int x,y;
@@ -133,16 +158,52 @@ void GenerateMineFeild(int xx, int yy) {
 		}
 	}
 }
+void ClearMyNeighbors(int x, int y) {
+	int bombcount =0;
+	mvprintw(1,1, "%d - %d - %d           ", x, y);
+	if(x<1 || y<1 || x>GB_ROWS || y>GB_COLS) {
+		return; // out of bounds
+	}
+	y--; x--;
+	if(TestBit(mines[x], y)) {
+		mvprintw(1,1, "BOMB HERE %d - %d", x, y);
+		return; // bomb here
+	}
+        if(TestBit(mines[x], y-1)) bombcount++;
+	if(!TestBit(mines[x], y-1)) ClearMyNeighbors(x, y-1);
+	if(TestBit(mines[x], y+1)) bombcount++;
+        if(!TestBit(mines[x], y+1)) ClearMyNeighbors(x, y+1); 
+        if(TestBit(mines[x-1], y)) bombcount++;
+        if(!TestBit(mines[x-1], y)) ClearMyNeighbors(x-1, y);
+        if(TestBit(mines[x+1], y)) bombcount++;
+        if(!TestBit(mines[x+1], y)) ClearMyNeighbors(x+1, y);
+	if(bombcount == 0) mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3, " ");
+	if(bombcount > 0) mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3, "%d", bombcount);
+}
+// Print where all the mines are
+void PrintEndofGame() {
+	int x,y;
+	for(x=0; x<GB_ROWS; x++) {
+        	for(y=0; y<GB_COLS; y++) {
+                        if(TestBit(mines[x], y)) mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3,"*");
+			else			 mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3," ");
+		}
+	}
+}
+void Print_BlankGameBoard() {
+	int x,y;
+        for(x=0; x<GB_ROWS; x++) {
+                for(y=0; y<GB_COLS; y++) {
+			mvprintw((x*GB_HEIGHT)+GB_TOPPAD+2,(y*GB_WIDTH )+GB_LEFTPAD+3,"?");
+		}
+	}
+}
 void Debug_PrintMineField() {
 	int x,y;
         for(x=0; x<GB_ROWS; x++) {
                 for(y=0; y<GB_COLS; y++) {
-			if(TestBit(mines[x], y)) {
-				mvprintw(x+30,y,"*");
-			}
-			else {
-				mvprintw(x+30,y,"O");
-			}
+			if(TestBit(mines[x], y)) mvprintw(+30,y,"*");
+			else 			 mvprintw(x+30,y,"O");
 		}
 	}
 }
