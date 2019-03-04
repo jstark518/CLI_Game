@@ -143,7 +143,7 @@ void DrawGameBoard(int rows, int cols) {
 	}
 }
 // Generate the minefield randomly; array of int, using bitwise to save space. (max col would now be 32)
-// x,y should not have a mine. (the boxes around it shouldn't either ** TODO).
+// x,y should not have a mine. 
 void GenerateMineFeild(int xx, int yy) {
 	time_t t;
 	int x,y;
